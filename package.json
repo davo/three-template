@@ -44,6 +44,7 @@
     "eslint-config-prettier": "^9.1.0",
     "glslify": "^7.1.1",
     "indent-string": "^5.0.0",
+    "npm-check-updates": "^18.0.2",
     "ora": "^8.1.1",
     "react-dev-utils": "^12.0.1",
     "rimraf": "^6.0.1",
