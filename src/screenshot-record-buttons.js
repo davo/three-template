@@ -20,47 +20,47 @@ const buttonStyles = `
     pointer-events: none;
     opacity: 0.7;
   }
-`
+`;
 
 // demo the save screenshot feature
 export function addScreenshotButton(webgl) {
-  document.head.innerHTML = `${document.head.innerHTML}<style>${buttonStyles}</style>`
+  document.head.innerHTML = `${document.head.innerHTML}<style>${buttonStyles}</style>`;
 
-  const screenshotButton = document.createElement('div')
-  screenshotButton.classList.add('button')
-  screenshotButton.style.position = 'fixed'
-  screenshotButton.style.bottom = 0
-  screenshotButton.style.right = 0
+  const screenshotButton = document.createElement("div");
+  screenshotButton.classList.add("button");
+  screenshotButton.style.position = "fixed";
+  screenshotButton.style.bottom = 0;
+  screenshotButton.style.right = 0;
 
-  screenshotButton.textContent = '📸 Save screenshot'
-  screenshotButton.addEventListener('click', () => webgl.saveScreenshot())
+  screenshotButton.textContent = "📸 Save screenshot";
+  screenshotButton.addEventListener("click", () => webgl.saveScreenshot());
 
-  document.body.appendChild(screenshotButton)
+  document.body.appendChild(screenshotButton);
 }
 
 // demo the save video feature
 export function addRecordButton(webgl) {
-  document.head.innerHTML = `${document.head.innerHTML}<style>${buttonStyles}</style>`
+  document.head.innerHTML = `${document.head.innerHTML}<style>${buttonStyles}</style>`;
 
-  const recordButton = document.createElement('div')
-  recordButton.classList.add('button')
-  recordButton.style.position = 'fixed'
-  recordButton.style.bottom = 0
-  recordButton.style.left = 0
+  const recordButton = document.createElement("div");
+  recordButton.classList.add("button");
+  recordButton.style.position = "fixed";
+  recordButton.style.bottom = 0;
+  recordButton.style.left = 0;
 
-  recordButton.textContent = '🔴 Start recording mp4'
-  recordButton.addEventListener('click', async () => {
+  recordButton.textContent = "🔴 Start recording mp4";
+  recordButton.addEventListener("click", async () => {
     if (!webgl.isRecording) {
-      recordButton.textContent = '🟥 Stop recording mp4'
-      webgl.startRecording()
+      recordButton.textContent = "🟥 Stop recording mp4";
+      webgl.startRecording();
     } else {
-      recordButton.textContent = '⏳ Processing video...'
-      recordButton.setAttribute('disabled', '')
-      await webgl.stopRecording()
-      recordButton.removeAttribute('disabled')
-      recordButton.textContent = '🔴 Start recording mp4'
+      recordButton.textContent = "⏳ Processing video...";
+      recordButton.setAttribute("disabled", "");
+      await webgl.stopRecording();
+      recordButton.removeAttribute("disabled");
+      recordButton.textContent = "🔴 Start recording mp4";
     }
-  })
+  });
 
-  document.body.appendChild(recordButton)
+  document.body.appendChild(recordButton);
 }

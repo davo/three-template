@@ -13,28 +13,26 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "biome lint .",
+    "format": "biome format . --write",
+    "check": "biome check --apply ."
   },
   "dependencies": {
     "cannon-es": "^0.20.0",
     "cannon-es-debugger": "^1.0.0",
-    "chalk": "^5.4.1",
     "detect-gpu": "^5.0.50",
     "image-promise": "^7.0.1",
     "lil-gui": "^0.19.2",
     "lodash-es": "^4.17.21",
     "mp4-wasm": "marcofugaro/mp4-wasm#build-embedded",
-    "ora": "^8.2.0",
-    "p-map": "^7.0.1",
     "postprocessing": "^6.36.0",
-    "pretty-ms": "^9.1.0",
     "stats.js": "marcofugaro/stats.js",
     "three": "^0.169.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.1.2",
     "address": "^2.0.1",
-    "eslint": "^9.15.0",
-    "eslint-config-prettier": "^9.1.0",
     "indent-string": "^5.0.0",
     "npm-check-updates": "^18.0.2",
     "tree-node-cli": "^1.6.0",

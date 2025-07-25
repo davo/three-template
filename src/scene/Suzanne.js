@@ -1,6 +1,6 @@
-import { Group, MeshStandardMaterial, Raycaster, Vector2 } from 'three'
-import assets from '../utils/AssetManager'
-import { addUniforms, customizeVertexShader } from '../utils/customizeShader'
+import { Group, MeshStandardMaterial, Raycaster, Vector2 } from "three";
+import assets from "../utils/AssetManager";
+import { addUniforms, customizeVertexShader } from "../utils/customizeShader";
 
 // elaborated three.js component example
 // containing example usage of
@@ -12,46 +12,46 @@ import { addUniforms, customizeVertexShader } from '../utils/customizeShader'
 
 // preload the suzanne model
 const suzanneKey = assets.queue({
-  url: 'assets/suzanne.gltf',
-  type: 'gltf',
-})
+  url: "assets/suzanne.gltf",
+  type: "gltf",
+});
 
 // preload the materials
 const albedoKey = assets.queue({
-  url: 'assets/spotty-metal/albedo.jpg',
-  type: 'texture',
+  url: "assets/spotty-metal/albedo.jpg",
+  type: "texture",
   gamma: true, // use gamma correction
-})
+});
 const metalnessKey = assets.queue({
-  url: 'assets/spotty-metal/metalness.jpg',
-  type: 'texture',
-})
+  url: "assets/spotty-metal/metalness.jpg",
+  type: "texture",
+});
 const roughnessKey = assets.queue({
-  url: 'assets/spotty-metal/roughness.jpg',
-  type: 'texture',
-})
+  url: "assets/spotty-metal/roughness.jpg",
+  type: "texture",
+});
 const normalKey = assets.queue({
-  url: 'assets/spotty-metal/normal.jpg',
-  type: 'texture',
-})
+  url: "assets/spotty-metal/normal.jpg",
+  type: "texture",
+});
 
 // preload the environment map
 const hdrKey = assets.queue({
-  url: 'assets/ouside-afternoon-blurred-hdr.jpg',
-  type: 'env-map',
+  url: "assets/ouside-afternoon-blurred-hdr.jpg",
+  type: "env-map",
   gamma: true, // use gamma correction
-})
+});
 
 export default class Suzanne extends Group {
   constructor(webgl, options = {}) {
-    super(options)
-    this.webgl = webgl
-    this.options = options
+    super(options);
+    this.webgl = webgl;
+    this.options = options;
 
-    const suzanneGltf = assets.get(suzanneKey)
-    const suzanne = suzanneGltf.scene.clone()
+    const suzanneGltf = assets.get(suzanneKey);
+    const suzanne = suzanneGltf.scene.clone();
 
-    const envMap = assets.get(hdrKey)
+    const envMap = assets.get(hdrKey);
     const material = new MeshStandardMaterial({
       map: assets.get(albedoKey),
       metalnessMap: assets.get(metalnessKey),
@@ -61,17 +61,19 @@ export default class Suzanne extends Group {
       envMap,
       roughness: 0.5,
       metalness: 1,
-    })
-    webgl.gui?.addSmart(material, 'roughness')
-    this.material = material
+    });
+    webgl.gui?.addSmart(material, "roughness");
+    this.material = material;
 
     // add new unifroms and expose current uniforms
     addUniforms(material, {
       time: { value: 0 },
       frequency: { value: 0.5 },
       amplitude: { value: 0.7 },
-    })
-    webgl.gui?.wireUniforms('Movement', material.uniforms, { blacklist: ['time'] })
+    });
+    webgl.gui?.wireUniforms("Movement", material.uniforms, {
+      blacklist: ["time"],
+    });
 
     customizeVertexShader(material, {
       head: `
@@ -96,26 +98,28 @@ export default class Suzanne extends Group {
       transformed: `
         transformed *= deformMatrix;
       `,
-    })
+    });
 
     // apply the material to the model
     suzanne.traverse((child) => {
       if (child.isMesh) {
-        child.material = material
+        child.material = material;
       }
-    })
+    });
 
     // make it a little bigger
-    suzanne.scale.multiplyScalar(1.2)
+    suzanne.scale.multiplyScalar(1.2);
 
     // incremental speed, we can change it through the GUI
-    this.speed = 1.5
-    webgl.gui?.folders.find((f) => f._title === 'Movement').addSmart(this, 'speed')
+    this.speed = 1.5;
+    webgl.gui?.folders
+      .find((f) => f._title === "Movement")
+      .addSmart(this, "speed");
 
-    this.add(suzanne)
+    this.add(suzanne);
 
     // set the background as the hdr
-    this.webgl.scene.background = envMap
+    this.webgl.scene.background = envMap;
   }
 
   onPointerDown(event, { x, y }) {
@@ -123,17 +127,17 @@ export default class Suzanne extends Group {
     // object with raycasting
     const coords = new Vector2().set(
       (x / this.webgl.width) * 2 - 1,
-      (-y / this.webgl.height) * 2 + 1
-    )
-    const raycaster = new Raycaster()
-    raycaster.setFromCamera(coords, this.webgl.camera)
-    const hits = raycaster.intersectObject(this, true)
-    console.log(hits.length > 0 ? `Hit ${hits[0].object.name}!` : 'No hit')
+      (-y / this.webgl.height) * 2 + 1,
+    );
+    const raycaster = new Raycaster();
+    raycaster.setFromCamera(coords, this.webgl.camera);
+    const hits = raycaster.intersectObject(this, true);
+    console.log(hits.length > 0 ? `Hit ${hits[0].object.name}!` : "No hit");
     // this, of course, doesn't take into consideration the
     // mesh deformation in the vertex shader
   }
 
   update(dt, time) {
-    this.material.uniforms.time.value += dt * this.speed
+    this.material.uniforms.time.value += dt * this.speed;
   }
 }
