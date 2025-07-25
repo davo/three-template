@@ -1,15 +1,21 @@
+
 module.exports = {
+  root: true,
   env: {
     browser: true,
-    node: true,
-    es6: true,
+    es2021: true,
   },
   extends: [
     'eslint:recommended',
-    'prettier',
+    'prettier'
   ],
   parserOptions: {
-    sourceType: 'module',
     ecmaVersion: 'latest',
+    sourceType: 'module',
   },
+  rules: {
+    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    'no-console': 'off',
+  },
+  ignorePatterns: ['build/', 'public/app.js'],
 }

@@ -128,6 +128,8 @@ export default class WebGLApp {
     // of the canvas.
     // In case of touches with multiple fingers, only the
     // first touch is registered.
+    // In case of touches with multiple fingers, only the
+    // first touch is registered.
     this.isDragging = false
     this.canvas.addEventListener('pointerdown', (event) => {
       if (!event.isPrimary) return
@@ -195,16 +197,11 @@ export default class WebGLApp {
 
     // set up OrbitControls
     if (options.orbitControls) {
+      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js')
       this.orbitControls = new OrbitControls(this.camera, this.canvas)
 
-      this.orbitControls.enableDamping = true
-      this.orbitControls.dampingFactor = 0.15
-      this.orbitControls.enablePan = false
-
-      if (options.orbitControls instanceof Object) {
-        Object.keys(options.orbitControls).forEach((key) => {
-          this.orbitControls[key] = options.orbitControls[key]
-        })
+      if (typeof options.orbitControls === 'object') {
+        Object.assign(this.orbitControls, options.orbitControls)
       }
     }
 

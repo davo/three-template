@@ -39,6 +39,7 @@ const result = await esbuild
     entryPoints: ['src/index.js'],
     bundle: true,
     format: 'esm',
+    target: 'es2020',
     logLevel: 'silent', // sssh...
     legalComments: 'none', // don't include licenses txt file
     sourcemap: true,
