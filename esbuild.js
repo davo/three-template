@@ -34,74 +34,66 @@ if (isDevelopment) {
   external = `${HTTPS ? 'https' : 'http'}://${ip()}:${PORT}`
 }
 
-const result = await esbuild
-  .build({
+if (isDevelopment) {
+  // Development mode with watch
+  const context = await esbuild.context({
     entryPoints: ['src/index.js'],
     bundle: true,
     format: 'esm',
     target: 'es2020',
-    logLevel: 'silent', // sssh...
-    legalComments: 'none', // don't include licenses txt file
+    logLevel: 'silent',
+    legalComments: 'none',
     sourcemap: true,
-    ...(isDevelopment
-      ? //
-        //  $$$$$$\    $$$$$$$$\     $$$$$$\     $$$$$$$\    $$$$$$$$\
-        // $$  __$$\   \__$$  __|   $$  __$$\    $$  __$$\   \__$$  __|
-        // $$ /  \__|     $$ |      $$ /  $$ |   $$ |  $$ |     $$ |
-        // \$$$$$$\       $$ |      $$$$$$$$ |   $$$$$$$  |     $$ |
-        //  \____$$\      $$ |      $$  __$$ |   $$  __$$<      $$ |
-        // $$\   $$ |     $$ |      $$ |  $$ |   $$ |  $$ |     $$ |
-        // \$$$$$$  |     $$ |      $$ |  $$ |   $$ |  $$ |     $$ |
-        //  \______/      \__|      \__|  \__|   \__|  \__|     \__|
-        //
-        {
-          outfile: 'public/app.js',
-          watch: true,
-          plugins: [
-            glslify(),
-            glslifyInline(),
-            devLogger({
-              localUrl: local,
-              networkUrl: external,
-              onFisrtBuild() {
-                openBrowser(local)
-              },
-            }),
-          ],
-        }
-      : //
-        // $$$$$$$\     $$\   $$\    $$$$$$\    $$\          $$$$$$$\
-        // $$  __$$\    $$ |  $$ |   \_$$  _|   $$ |         $$  __$$\
-        // $$ |  $$ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
-        // $$$$$$$\ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
-        // $$  __$$\    $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
-        // $$ |  $$ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
-        // $$$$$$$  |   \$$$$$$  |   $$$$$$\    $$$$$$$$\    $$$$$$$  |
-        // \_______/     \______/    \______|   \________|   \_______/
-        //
-        {
-          outfile: 'build/app.js',
-          minify: true,
-          plugins: [
-            glslify({ compress: true }),
-            glslifyInline({ compress: true }),
-            prodLogger({ outDir: 'build/' }),
-          ],
-          metafile: true,
-          entryNames: '[name]-[hash]', // add the contenthash to the filename
-        }),
-  })
-  .catch((err) => {
-    console.error(err)
-    process.exit(1)
+    outfile: 'public/app.js',
+    plugins: [
+      glslify(),
+      glslifyInline(),
+      devLogger({
+        localUrl: local,
+        networkUrl: external,
+        onFisrtBuild() {
+          openBrowser(local)
+        },
+      }),
+    ],
   })
 
-if (!isDevelopment) {
-  // inject the hash into the index.html
-  const jsFilePath = Object.keys(result.metafile.outputs).find((o) => o.endsWith('.js'))
-  const jsFileName = jsFilePath.slice('build/'.length) // --> app-Y4WC7QZS.js
+  await context.watch()
+} else {
+  // Production build
+  const result = await esbuild
+    .build({
+      entryPoints: ['src/index.js'],
+      bundle: true,
+      format: 'esm',
+      target: 'es2020',
+      logLevel: 'silent',
+      legalComments: 'none',
+      sourcemap: true,
+      outfile: 'build/app.js',
+      minify: true,
+      plugins: [
+        glslify({ compress: true }),
+        glslifyInline({ compress: true }),
+        prodLogger({ outDir: 'build/' }),
+      ],
+      metafile: true,
+      entryNames: '[name]-[hash]',
+    })
+    .catch((err) => {
+      console.error(err)
+      process.exit(1)
+    })
 
-  let indexHtml = await fs.readFile('./build/index.html', 'utf-8')
-  indexHtml = indexHtml.replace('src="app.js"', `src="${jsFileName}"`)
-  await fs.writeFile('./build/index.html', indexHtml)
+  if (!isDevelopment) {
+    // inject the hash into the index.html
+    const jsFilePath = Object.keys(result.metafile.outputs).find((o) => o.endsWith('.js'))
+    const jsFileName = jsFilePath.slice('build/'.length) // --> app-Y4WC7QZS.js
+
+    let indexHtml = await fs.readFile('./build/index.html', 'utf-8')
+    indexHtml = indexHtml.replace('src="app.js"', `src="${jsFileName}"`)
+    await fs.writeFile('./build/index.html', indexHtml)
+  }
 }
+
+
