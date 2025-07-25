@@ -34,66 +34,75 @@ if (isDevelopment) {
   external = `${HTTPS ? 'https' : 'http'}://${ip()}:${PORT}`
 }
 
-const result = await esbuild
-  .build({
-    entryPoints: ['src/index.js'],
-    bundle: true,
-    format: 'esm',
-    logLevel: 'silent', // sssh...
-    legalComments: 'none', // don't include licenses txt file
-    sourcemap: true,
-    ...(isDevelopment
-      ? //
-        //  $$$$$$\    $$$$$$$$\     $$$$$$\     $$$$$$$\    $$$$$$$$\
-        // $$  __$$\   \__$$  __|   $$  __$$\    $$  __$$\   \__$$  __|
-        // $$ /  \__|     $$ |      $$ /  $$ |   $$ |  $$ |     $$ |
-        // \$$$$$$\       $$ |      $$$$$$$$ |   $$$$$$$  |     $$ |
-        //  \____$$\      $$ |      $$  __$$ |   $$  __$$<      $$ |
-        // $$\   $$ |     $$ |      $$ |  $$ |   $$ |  $$ |     $$ |
-        // \$$$$$$  |     $$ |      $$ |  $$ |   $$ |  $$ |     $$ |
-        //  \______/      \__|      \__|  \__|   \__|  \__|     \__|
-        //
-        {
-          outfile: 'public/app.js',
-          watch: true,
-          plugins: [
-            glslify(),
-            glslifyInline(),
-            devLogger({
-              localUrl: local,
-              networkUrl: external,
-              onFisrtBuild() {
-                openBrowser(local)
-              },
-            }),
-          ],
-        }
-      : //
-        // $$$$$$$\     $$\   $$\    $$$$$$\    $$\          $$$$$$$\
-        // $$  __$$\    $$ |  $$ |   \_$$  _|   $$ |         $$  __$$\
-        // $$ |  $$ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
-        // $$$$$$$\ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
-        // $$  __$$\    $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
-        // $$ |  $$ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
-        // $$$$$$$  |   \$$$$$$  |   $$$$$$\    $$$$$$$$\    $$$$$$$  |
-        // \_______/     \______/    \______|   \________|   \_______/
-        //
-        {
-          outfile: 'build/app.js',
-          minify: true,
-          plugins: [
-            glslify({ compress: true }),
-            glslifyInline({ compress: true }),
-            prodLogger({ outDir: 'build/' }),
-          ],
-          metafile: true,
-          entryNames: '[name]-[hash]', // add the contenthash to the filename
-        }),
-  })
-  .catch((err) => {
-    console.error(err)
-    process.exit(1)
-  })
+const buildOptions = {
+  entryPoints: ['src/index.js'],
+  bundle: true,
+  format: 'esm',
+  logLevel: 'silent', // sssh...
+  legalComments: 'none', // don't include licenses txt file
+  sourcemap: true,
+  ...(isDevelopment
+    ? //
+      //  $$$$$$\    $$$$$$$$\     $$$$$$\     $$$$$$$\    $$$$$$$$\
+      // $$  __$$\   \__$$  __|   $$  __$$\    $$  __$$\   \__$$  __|
+      // $$ /  \__|     $$ |      $$ /  $$ |   $$ |  $$ |     $$ |
+      // \$$$$$$\       $$ |      $$$$$$$$ |   $$$$$$$  |     $$ |
+      //  \____$$\      $$ |      $$  __$$ |   $$  __$$<      $$ |
+      // $$\   $$ |     $$ |      $$ |  $$ |   $$ |  $$ |     $$ |
+      // \$$$$$$  |     $$ |      $$ |  $$ |   $$ |  $$ |     $$ |
+      //  \______/      \__|      \__|  \__|   \__|  \__|     \__|
+      //
+      {
+        outfile: 'public/app.js',
+        plugins: [
+          glslify(),
+          glslifyInline(),
+          devLogger({
+            localUrl: local,
+            networkUrl: external,
+            onFisrtBuild() {
+              openBrowser(local)
+            },
+          }),
+        ],
+      }
+    : //
+      // $$$$$$$\     $$\   $$\    $$$$$$\    $$\          $$$$$$$\
+      // $$  __$$\    $$ |  $$ |   \_$$  _|   $$ |         $$  __$$\
+      // $$ |  $$ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
+      // $$$$$$$\ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
+      // $$  __$$\    $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
+      // $$ |  $$ |   $$ |  $$ |     $$ |     $$ |         $$ |  $$ |
+      // $$$$$$$  |   \$$$$$$  |   $$$$$$\    $$$$$$$$\    $$$$$$$  |
+      // \_______/     \______/    \______|   \________|   \_______/
+      //
+      {
+        outfile: 'build/app.js',
+        minify: true,
+        plugins: [
+          glslify({ compress: true }),
+          glslifyInline({ compress: true }),
+          prodLogger({ outDir: 'build/' }),
+        ],
+        metafile: true,
+        entryNames: '[name]-[hash]', // add the contenthash to the filename
+      }),
+}
+
+let result
+try {
+  if (isDevelopment) {
+    // Use context API for watch mode
+    const ctx = await esbuild.context(buildOptions)
+    await ctx.watch()
+    result = await ctx.rebuild()
+  } else {
+    result = await esbuild.build(buildOptions)
+  }
+} catch (err) {
+  console.error(err)
+  process.exit(1)
+}
 
 if (!isDevelopment) {
   // inject the hash into the index.html
