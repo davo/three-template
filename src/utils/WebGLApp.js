@@ -63,19 +63,28 @@ export default class WebGLApp {
     far = 100,
     ...options
   } = {}) {
+    this.options = {
+      background,
+      backgroundAlpha,
+      fov,
+      frustumSize,
+      near,
+      far,
+      ...options,
+    }
     this.renderer = new WebGLRenderer({
-      antialias: !options.postprocessing,
+      antialias: !this.options.postprocessing,
       alpha: backgroundAlpha !== 1,
       // enabled for recording gifs or videos,
       // might disable it for performance reasons
       preserveDrawingBuffer: true,
-      ...options,
+      ...this.options,
     })
 
-    if (options.sortObjects !== undefined) {
-      this.renderer.sortObjects = options.sortObjects
+    if (this.options.sortObjects !== undefined) {
+      this.renderer.sortObjects = this.options.sortObjects
     }
-    if (options.xr) {
+    if (this.options.xr) {
       this.renderer.xr.enabled = true
     }
 
@@ -84,17 +93,17 @@ export default class WebGLApp {
     this.renderer.setClearColor(background, backgroundAlpha)
 
     // save the fixed dimensions
-    this.#width = options.width
-    this.#height = options.height
+    this.#width = this.options.width
+    this.#height = this.options.height
 
     // clamp pixel ratio for performance
-    this.maxPixelRatio = options.maxPixelRatio || 1.5
+    this.maxPixelRatio = this.options.maxPixelRatio || 1.5
     // clamp delta to avoid stepping anything too far forward
-    this.maxDeltaTime = options.maxDeltaTime || 1 / 30
+    this.maxDeltaTime = this.options.maxDeltaTime || 1 / 30
 
     // setup the camera
     const aspect = this.#width / this.#height
-    if (!options.orthographic) {
+    if (!this.options.orthographic) {
       this.camera = new PerspectiveCamera(fov, aspect, near, far)
     } else {
       this.camera = new OrthographicCamera(
@@ -107,8 +116,8 @@ export default class WebGLApp {
       )
       this.camera.frustumSize = frustumSize
     }
-    this.camera.position.copy(options.cameraPosition || new Vector3(0, 0, 4))
-    this.camera.lookAt(options.cameraTarget || new Vector3())
+    this.camera.position.copy(this.options.cameraPosition || new Vector3(0, 0, 4))
+    this.camera.lookAt(this.options.cameraTarget || new Vector3())
 
     this.scene = new Scene()
 
@@ -185,46 +194,48 @@ export default class WebGLApp {
     })
 
     // expose a composer for postprocessing passes
-    if (options.postprocessing) {
+    if (this.options.postprocessing) {
       const maxMultisampling = this.gl.getParameter(this.gl.MAX_SAMPLES)
       this.composer = new EffectComposer(this.renderer, {
         multisampling: Math.min(8, maxMultisampling),
         frameBufferType: HalfFloatType,
-        ...options,
+        ...this.options,
       })
       this.composer.addPass(new RenderPass(this.scene, this.camera))
     }
+  }
 
+  async init() {
     // set up OrbitControls
-    if (options.orbitControls) {
+    if (this.options.orbitControls) {
       const { OrbitControls } = await import('three/addons/controls/OrbitControls.js')
       this.orbitControls = new OrbitControls(this.camera, this.canvas)
 
-      if (typeof options.orbitControls === 'object') {
-        Object.assign(this.orbitControls, options.orbitControls)
+      if (typeof this.options.orbitControls === 'object') {
+        Object.assign(this.orbitControls, this.options.orbitControls)
       }
     }
 
     // Attach the Cannon physics engine
-    if (options.world) {
-      this.world = options.world
-      if (options.showWorldWireframes) {
+    if (this.options.world) {
+      this.world = this.options.world
+      if (this.options.showWorldWireframes) {
         this.cannonDebugger = new CannonDebugger(this.scene, this.world.bodies)
       }
     }
 
     // show the fps meter
-    if (options.showFps) {
+    if (this.options.showFps) {
       this.stats = new Stats({ showMinMax: false, context: this.gl })
       this.stats.showPanel(0)
       document.body.appendChild(this.stats.dom)
     }
 
     // initialize the gui
-    if (options.gui) {
+    if (this.options.gui) {
       this.gui = new GUI()
 
-      if (options.guiClosed) {
+      if (this.options.guiClosed) {
         this.gui.close()
       }
 
@@ -275,9 +286,9 @@ export default class WebGLApp {
         },
       })
 
-      if (typeof options.gui === 'object') {
-        this.guiState = options.gui
-        Object.keys(options.gui).forEach((key) => {
+      if (typeof this.options.gui === 'object') {
+        this.guiState = this.options.gui
+        Object.keys(this.options.gui).forEach((key) => {
           this.gui.addSmart(this.guiState, key)
         })
       }

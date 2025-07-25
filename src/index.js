@@ -37,6 +37,8 @@ if (window.DEBUG) {
 // hide canvas
 webgl.canvas.style.visibility = 'hidden'
 
+await webgl.init()
+
 // load any queued assets
 await assets.load({ renderer: webgl.renderer })
 

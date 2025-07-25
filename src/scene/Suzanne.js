@@ -1,5 +1,4 @@
 import { Group, MeshStandardMaterial, Raycaster, Vector2 } from 'three'
-import glsl from 'glslify'
 import assets from '../utils/AssetManager'
 import { addUniforms, customizeVertexShader } from '../utils/customizeShader'
 
@@ -75,7 +74,7 @@ export default class Suzanne extends Group {
     webgl.gui?.wireUniforms('Movement', material.uniforms, { blacklist: ['time'] })
 
     customizeVertexShader(material, {
-      head: glsl`
+      head: `
         uniform float time;
         uniform float frequency;
         uniform float amplitude;
@@ -83,18 +82,18 @@ export default class Suzanne extends Group {
         // you could import glsl packages like this
         // #pragma glslify: noise3d = require(glsl-noise/simplex/3d)
       `,
-      main: glsl`
+      main: `
         float theta = sin(position.z * frequency + time) * amplitude;
         float c = cos(theta);
         float s = sin(theta);
         mat3 deformMatrix = mat3(c, 0, s, 0, 1, 0, -s, 0, c);
       `,
       // hook that lets you modify the normal
-      objectNormal: glsl`
+      objectNormal: `
         objectNormal *= deformMatrix;
       `,
       // hook that lets you modify the position
-      transformed: glsl`
+      transformed: `
         transformed *= deformMatrix;
       `,
     })

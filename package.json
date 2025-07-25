@@ -11,20 +11,20 @@
   },
   "type": "module",
   "scripts": {
-    "start": "cross-env NODE_ENV=development node ./esbuild.js",
-    "prebuild": "yarn clean; yarn copy-public",
-    "build": "cross-env NODE_ENV=production node ./esbuild.js",
-    "clean": "rimraf build/; rimraf public/app.js; rimraf public/app.js.map",
-    "copy-public": "cpr public/ build/"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "cannon-es": "^0.20.0",
     "cannon-es-debugger": "^1.0.0",
+    "chalk": "^5.4.1",
     "detect-gpu": "^5.0.50",
     "image-promise": "^7.0.1",
     "lil-gui": "^0.19.2",
     "lodash-es": "^4.17.21",
     "mp4-wasm": "marcofugaro/mp4-wasm#build-embedded",
+    "ora": "^8.2.0",
     "p-map": "^7.0.1",
     "postprocessing": "^6.36.0",
     "pretty-ms": "^9.1.0",
@@ -33,21 +33,12 @@
   },
   "devDependencies": {
     "address": "^2.0.1",
-    "browser-sync": "^3.0.2",
-    "chalk": "^5.3.0",
-    "cpr": "^3.0.1",
-    "cross-env": "^7.0.3",
-    "esbuild": "^0.24.0",
-    "esbuild-plugin-glslify": "^1.0.1",
-    "esbuild-plugin-glslify-inline": "^1.1.0",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
-    "glslify": "^7.1.1",
     "indent-string": "^5.0.0",
     "npm-check-updates": "^18.0.2",
-    "ora": "^8.1.1",
-    "react-dev-utils": "^12.0.1",
-    "rimraf": "^6.0.1",
-    "tree-node-cli": "^1.6.0"
+    "tree-node-cli": "^1.6.0",
+    "vite": "^7.0.6",
+    "vite-plugin-glsl": "^1.5.1"
   }
 }
