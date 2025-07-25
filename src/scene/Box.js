@@ -21,7 +21,7 @@ export default class Box extends Group {
     this.add(this.box)
   }
 
-  update(dt, time) {
+  update(dt) {
     this.box.rotation.y += dt * 0.5
   }
 }
