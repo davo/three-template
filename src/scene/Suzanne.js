@@ -134,7 +134,7 @@ export default class Suzanne extends Group {
     // mesh deformation in the vertex shader
   }
 
-  update(dt, time) {
+  update(dt) {
     this.material.uniforms.time.value += dt * this.speed
   }
 }
