@@ -1,4 +1,4 @@
-import pMap from "p-map";
+const pMap = (array, func) => Promise.all(array.map(func));
 import prettyMs from "pretty-ms";
 import loadImage from "image-promise";
 import omit from "lodash/omit";
@@ -182,9 +182,8 @@ class AssetManager {
 
     const loadingStart = performance.now();
 
-    await pMap(
-      queue,
-      async (item, i) => {
+    await Promise.all(
+      queue.map(async (item, i) => {
         try {
           const itemLoadingStart = performance.now();
 
@@ -195,7 +194,9 @@ class AssetManager {
 
           if (window.DEBUG) {
             this.log(
-              `Loaded %c${item.url}%c in ${prettyMs(performance.now() - itemLoadingStart)}`,
+              `Loaded %c${item.url}%c in ${prettyMs(
+                performance.now() - itemLoadingStart,
+              )}`,
               "color:blue",
               "color:black",
             );
@@ -206,8 +207,7 @@ class AssetManager {
 
         const percent = (i + 1) / total;
         this.#onProgressListeners.forEach((fn) => fn(percent));
-      },
-      { concurrency: this.#asyncConcurrency },
+      }),
     );
 
     if (window.DEBUG) {
