@@ -46,16 +46,17 @@ This is your high-level plan. You will tackle each phase in order, proposing a d
 
 ---
 
-### ⏳ **Phase 2: Code Quality & Linting Setup**
-*   **Goal:** Establish a baseline for code quality with modern linting and formatting.
+### ⏳ **Phase 2: Code Quality & Linting Setup (ESLint to Biome Migration)**
+*   **Goal:** Migrate from ESLint and Prettier to Biome for unified formatting and linting with better performance.
 *   **Tasks:**
-		1.  Remove the old `.eslintrc.cjs`.
-		2.  Add `eslint`, `prettier`, `eslint-config-prettier`, and `husky` as dev dependencies.
-		3.  Create a new, modern `.eslintrc.cjs` configuration suitable for a vanilla JS/Three.js project.
-		4.  Create a `.prettierrc` file based on the existing (or a standard) configuration.
-		5.  Add `lint` and `format` scripts to `package.json`.
-		6.  Set up `husky` and `lint-staged` to automatically format and lint code on pre-commit.
-		7.  Run `pnpm format` and `pnpm lint --fix` on the entire codebase and commit the changes.
+		1.  Install Biome as a development dependency: `pnpm add -D --save-exact @biomejs/biome`.
+		2.  Run the ESLint migration command: `npx @biomejs/biome migrate eslint --write` to automatically convert existing ESLint configuration to Biome format.
+		3.  Run the Prettier migration command: `npx @biomejs/biome migrate prettier --write` to convert Prettier configuration to Biome format.
+		4.  Remove old linting/formatting dependencies and configuration files: `.eslintrc.cjs`, `.prettierrc`, `.prettierignore`, and uninstall any ESLint/Prettier related packages.
+		5.  Update `package.json` scripts to use Biome commands (`lint`, `format`, `check`).
+		6.  Set up `husky` and `lint-staged` to use Biome for pre-commit hooks.
+		7.  Run `pnpm format` and `pnpm lint --fix` using Biome on the entire codebase and commit the changes.
+		8.  Verify that Biome's VCS integration is enabled for proper ignore file handling.
 
 ---
 
@@ -107,7 +108,7 @@ This is your high-level plan. You will tackle each phase in order, proposing a d
 -   **Package Manager:** PNPM
 -   **Language:** TypeScript
 -   **Testing:** Vitest
--   **Linting/Formatting:** ESLint + Prettier + Husky
+-   **Linting/Formatting:** Biome + Husky
 -   **Essential Commands:**
 		-   `pnpm install`
 		-   `pnpm dev`
