@@ -1,13 +1,14 @@
 import { NumberController } from "lil-gui";
 
-// Exponential slider for lil-gui.
-// Only for numbers > 0
-
-const mapping = (x) => Math.pow(10, x);
+const mapping = (x: number): number => Math.pow(10, x);
 const inverseMapping = Math.log10;
 
 export class ExponentialNumberController extends NumberController {
-  updateDisplay() {
+  constructor(parent: any, object: object, property: string, min: number, max: number, step: number) {
+    super(parent, object, property, min, max, step);
+  }
+
+  updateDisplay(): this {
     super.updateDisplay();
 
     if (this._hasSlider) {
@@ -23,11 +24,8 @@ export class ExponentialNumberController extends NumberController {
     return this;
   }
 
-  _initSlider() {
+  _initSlider(): void {
     this._hasSlider = true;
-
-    // Build DOM
-    // ---------------------------------------------------------------------
 
     this.$slider = document.createElement("div");
     this.$slider.classList.add("slider");
@@ -40,36 +38,33 @@ export class ExponentialNumberController extends NumberController {
 
     this.domElement.classList.add("hasSlider");
 
-    // Map clientX to value
-    // ---------------------------------------------------------------------
-
     const min = inverseMapping(this._min);
     const max = inverseMapping(this._max);
 
-    const clamp = (value) => {
+    const clamp = (value: number): number => {
       if (value < min) value = min;
       if (value > max) value = max;
       return value;
     };
 
-    const map = (v, a, b, c, d) => {
+    const map = (v: number, a: number, b: number, c: number, d: number): number => {
       return ((v - a) / (b - a)) * (d - c) + c;
     };
 
-    const setValueFromX = (clientX) => {
+    const setValueFromX = (clientX: number) => {
       const rect = this.$slider.getBoundingClientRect();
       let value = map(clientX, rect.left, rect.right, min, max);
       this.setValue(this._snap(mapping(clamp(this._snap(value)))));
     };
 
-    const mouseDown = (e) => {
+    const mouseDown = (e: PointerEvent) => {
       this._setDraggingStyle(true);
       setValueFromX(e.clientX);
       window.addEventListener("pointermove", mouseMove);
       window.addEventListener("pointerup", mouseUp);
     };
 
-    const mouseMove = (e) => {
+    const mouseMove = (e: PointerEvent) => {
       setValueFromX(e.clientX);
     };
 

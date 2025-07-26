@@ -7,12 +7,13 @@ import {
   addScreenshotButton,
   addRecordButton,
 } from "./screenshot-record-buttons";
+import "./types.d.ts";
 
 // true if the url has the `?debug` parameter, otherwise false
 window.DEBUG = window.location.search.includes("debug");
 
 // grab our canvas
-const canvas = document.querySelector("#app");
+const canvas = document.querySelector<HTMLCanvasElement>("#app");
 
 // setup the WebGLRenderer
 const webgl = new WebGLApp({
@@ -38,7 +39,9 @@ if (window.DEBUG) {
 }
 
 // hide canvas
-webgl.canvas.style.visibility = "hidden";
+if (webgl.canvas) {
+  webgl.canvas.style.visibility = "hidden";
+}
 
 await webgl.init();
 
@@ -56,7 +59,9 @@ addNaturalLight(webgl);
 
 // postprocessing
 // add an existing effect from the postprocessing library
-webgl.composer.addPass(new EffectPass(webgl.camera, new VignetteEffect()));
+if (webgl.composer) {
+  webgl.composer.addPass(new EffectPass(webgl.camera, new VignetteEffect()));
+}
 
 // add the save screenshot and save gif buttons
 if (window.DEBUG) {
@@ -65,7 +70,9 @@ if (window.DEBUG) {
 }
 
 // show canvas
-webgl.canvas.style.visibility = "";
+if (webgl.canvas) {
+  webgl.canvas.style.visibility = "";
+}
 
 // start animation loop
 webgl.start();

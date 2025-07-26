@@ -6,51 +6,100 @@ import {
   Scene,
   Vector3,
   WebGLRenderer,
+  WebGLRendererParameters,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import Stats from "stats.js";
-import { getGPUTier } from "detect-gpu";
+import { getGPUTier, GPUTier } from "detect-gpu";
 import { EffectComposer, RenderPass } from "postprocessing";
 import CannonDebugger from "cannon-es-debugger";
-import loadMP4Module, { isWebCodecsSupported } from "mp4-wasm";
+import loadMP4Module, { isWebCodecsSupported, MP4Module, MP4Encoder } from "mp4-wasm";
 import GUI from "lil-gui";
 import { ExponentialNumberController } from "../utils/ExponentialNumberController";
+import * as CANNON from 'cannon-es';
+
+interface WebGLAppOptions extends WebGLRendererParameters {
+  background?: string;
+  backgroundAlpha?: number;
+  fov?: number;
+  frustumSize?: number;
+  near?: number;
+  far?: number;
+  width?: number;
+  height?: number;
+  maxPixelRatio?: number;
+  maxDeltaTime?: number;
+  orthographic?: boolean;
+  cameraPosition?: Vector3;
+  cameraTarget?: Vector3;
+  postprocessing?: boolean;
+  orbitControls?: boolean | object;
+  world?: CANNON.World;
+  showWorldWireframes?: boolean;
+  showFps?: boolean;
+  gui?: boolean | object;
+  guiClosed?: boolean;
+  sortObjects?: boolean;
+  xr?: boolean;
+}
+
+type UpdateListener = (dt: number, time: number, xrframe?: any) => void;
+type PointerListener = (event: PointerEvent, position: { x: number; y: number; dragX?: number; dragY?: number; }) => void;
 
 export default class WebGLApp {
-  #width;
-  #height;
+  #width?: number;
+  #height?: number;
   isRunning = false;
   time = 0;
   dt = 0;
   #lastTime = performance.now();
-  #updateListeners = [];
-  #pointerdownListeners = [];
-  #pointermoveListeners = [];
-  #pointerupListeners = [];
-  #startX;
-  #startY;
-  #mp4;
-  #mp4Encoder;
-  #fileName;
-  #frames = [];
+  #updateListeners: UpdateListener[] = [];
+  #pointerdownListeners: PointerListener[] = [];
+  #pointermoveListeners: PointerListener[] = [];
+  #pointerupListeners: PointerListener[] = [];
+  #startX?: number;
+  #startY?: number;
+  #mp4?: MP4Module;
+  #mp4Encoder?: MP4Encoder;
+  #fileName?: string;
+  #frames: ImageBitmap[] = [];
 
-  get background() {
+  options: WebGLAppOptions;
+  renderer: WebGLRenderer;
+  canvas: HTMLCanvasElement;
+  maxPixelRatio: number;
+  maxDeltaTime: number;
+  camera: PerspectiveCamera | OrthographicCamera;
+  scene: Scene;
+  gl: WebGLRenderingContext;
+  isDragging = false;
+  composer?: EffectComposer;
+  orbitControls?: OrbitControls;
+  world?: CANNON.World;
+  cannonDebugger?: any;
+  stats?: Stats;
+  gui?: GUI;
+  guiState?: object;
+  loadGPUTier: Promise<void>;
+  gpu?: GPUTier;
+
+  get background(): Color {
     return this.renderer.getClearColor(new Color());
   }
 
-  get backgroundAlpha() {
+  get backgroundAlpha(): number {
     return this.renderer.getClearAlpha();
   }
 
-  set background(background) {
+  set background(background: Color | string | number) {
     this.renderer.setClearColor(background, this.backgroundAlpha);
   }
 
-  set backgroundAlpha(backgroundAlpha) {
+  set backgroundAlpha(backgroundAlpha: number) {
     this.renderer.setClearColor(this.background, backgroundAlpha);
   }
 
-  get isRecording() {
+  get isRecording(): boolean {
     return Boolean(this.#mp4Encoder);
   }
 
@@ -62,7 +111,7 @@ export default class WebGLApp {
     near = 0.01,
     far = 100,
     ...options
-  } = {}) {
+  }: WebGLAppOptions = {}) {
     this.options = {
       background,
       backgroundAlpha,
@@ -102,7 +151,7 @@ export default class WebGLApp {
     this.maxDeltaTime = this.options.maxDeltaTime || 1 / 30;
 
     // setup the camera
-    const aspect = this.#width / this.#height;
+    const aspect = (this.#width || window.innerWidth) / (this.#height || window.innerHeight);
     if (!this.options.orthographic) {
       this.camera = new PerspectiveCamera(fov, aspect, near, far);
     } else {
@@ -114,7 +163,7 @@ export default class WebGLApp {
         near,
         far,
       );
-      this.camera.frustumSize = frustumSize;
+      (this.camera as OrthographicCamera).frustumSize = frustumSize;
     }
     this.camera.position.copy(
       this.options.cameraPosition || new Vector3(0, 0, 4),
@@ -139,23 +188,22 @@ export default class WebGLApp {
     // of the canvas.
     // In case of touches with multiple fingers, only the
     // first touch is registered.
-    // In case of touches with multiple fingers, only the
-    // first touch is registered.
     this.isDragging = false;
     this.canvas.addEventListener("pointerdown", (event) => {
       if (!event.isPrimary) return;
       this.isDragging = true;
       this.#startX = event.offsetX;
       this.#startY = event.offsetY;
+      const position = { x: event.offsetX, y: event.offsetY };
       // call onPointerDown method
       this.scene.traverse((child) => {
-        if (typeof child.onPointerDown === "function") {
-          child.onPointerDown(event, { x: event.offsetX, y: event.offsetY });
+        if (typeof (child as any).onPointerDown === "function") {
+          (child as any).onPointerDown(event, position);
         }
       });
       // call the pointerdown listeners
       this.#pointerdownListeners.forEach((fn) =>
-        fn(event, { x: event.offsetX, y: event.offsetY }),
+        fn(event, position),
       );
     });
     this.canvas.addEventListener("pointermove", (event) => {
@@ -172,8 +220,8 @@ export default class WebGLApp {
         }),
       };
       this.scene.traverse((child) => {
-        if (typeof child.onPointerMove === "function") {
-          child.onPointerMove(event, position);
+        if (typeof (child as any).onPointerMove === "function") {
+          (child as any).onPointerMove(event, position);
         }
       });
       // call the pointermove listeners
@@ -194,8 +242,8 @@ export default class WebGLApp {
         }),
       };
       this.scene.traverse((child) => {
-        if (typeof child.onPointerUp === "function") {
-          child.onPointerUp(event, position);
+        if (typeof (child as any).onPointerUp === "function") {
+          (child as any).onPointerUp(event, position);
         }
       });
       // call the pointerup listeners
@@ -220,9 +268,6 @@ export default class WebGLApp {
   async init() {
     // set up OrbitControls
     if (this.options.orbitControls) {
-      const { OrbitControls } = await import(
-        "three/addons/controls/OrbitControls.js"
-      );
       this.orbitControls = new OrbitControls(this.camera, this.canvas);
 
       if (typeof this.options.orbitControls === "object") {
@@ -240,7 +285,7 @@ export default class WebGLApp {
 
     // show the fps meter
     if (this.options.showFps) {
-      this.stats = new Stats({ showMinMax: false, context: this.gl });
+      this.stats = new Stats();
       this.stats.showPanel(0);
       document.body.appendChild(this.stats.dom);
     }
@@ -255,8 +300,8 @@ export default class WebGLApp {
 
       Object.assign(Object.getPrototypeOf(this.gui), {
         // let's try to be smart
-        addSmart(object, key, name = "") {
-          const value = object[key];
+        addSmart(object: object, key: string, name = "") {
+          const value = object[key as keyof typeof object];
           switch (typeof value) {
             case "number": {
               if (value === 0) {
@@ -289,12 +334,12 @@ export default class WebGLApp {
           }
         },
         // specifically for three.js exposed uniforms
-        wireUniforms(folderName, uniforms, { blacklist = [] } = {}) {
+        wireUniforms(folderName: string, uniforms: object, { blacklist = [] }: { blacklist?: string[] } = {}) {
           const folder = this.addFolder(folderName);
 
           Object.keys(uniforms).forEach((key) => {
             if (blacklist.includes(key)) return;
-            const uniformObject = uniforms[key];
+            const uniformObject = uniforms[key as keyof typeof uniforms];
             folder.addSmart(uniformObject, "value", key).name(key);
           });
         },
@@ -303,7 +348,7 @@ export default class WebGLApp {
       if (typeof this.options.gui === "object") {
         this.guiState = this.options.gui;
         Object.keys(this.options.gui).forEach((key) => {
-          this.gui.addSmart(this.guiState, key);
+          this.gui?.addSmart(this.guiState!, key);
         });
       }
     }
@@ -311,10 +356,7 @@ export default class WebGLApp {
     // detect the gpu info
     this.loadGPUTier = getGPUTier({ glContext: this.gl }).then((gpuTier) => {
       this.gpu = {
-        name: gpuTier.gpu,
-        tier: gpuTier.tier,
-        isMobile: gpuTier.isMobile,
-        fps: gpuTier.fps,
+        ...gpuTier
       };
     });
 
@@ -326,15 +368,15 @@ export default class WebGLApp {
     }
   }
 
-  get width() {
+  get width(): number {
     return this.#width || window.innerWidth;
   }
 
-  get height() {
+  get height(): number {
     return this.#height || window.innerHeight;
   }
 
-  get pixelRatio() {
+  get pixelRatio(): number {
     return Math.min(this.maxPixelRatio, window.devicePixelRatio);
   }
 
@@ -342,7 +384,7 @@ export default class WebGLApp {
     width = this.width,
     height = this.height,
     pixelRatio = this.pixelRatio,
-  } = {}) => {
+  }: { width?: number; height?: number; pixelRatio?: number } = {}) => {
     // update pixel ratio if necessary
     if (this.renderer.getPixelRatio() !== pixelRatio) {
       this.renderer.setPixelRatio(pixelRatio);
@@ -354,10 +396,11 @@ export default class WebGLApp {
       this.camera.aspect = width / height;
     } else {
       const aspect = width / height;
-      this.camera.left = -(this.camera.frustumSize * aspect) / 2;
-      this.camera.right = (this.camera.frustumSize * aspect) / 2;
-      this.camera.top = this.camera.frustumSize / 2;
-      this.camera.bottom = -this.camera.frustumSize / 2;
+      const camera = this.camera as OrthographicCamera;
+      camera.left = -(camera.frustumSize * aspect) / 2;
+      camera.right = (camera.frustumSize * aspect) / 2;
+      camera.top = camera.frustumSize / 2;
+      camera.bottom = -camera.frustumSize / 2;
     }
     this.camera.updateProjectionMatrix();
 
@@ -369,8 +412,8 @@ export default class WebGLApp {
 
     // recursively tell all child objects to resize
     this.scene.traverse((obj) => {
-      if (typeof obj.resize === "function") {
-        obj.resize({
+      if (typeof (obj as any).resize === "function") {
+        (obj as any).resize({
           width,
           height,
           pixelRatio,
@@ -388,11 +431,11 @@ export default class WebGLApp {
     width = this.width,
     height = this.height,
     fileName = "Screenshot",
-  } = {}) => {
+  }: { width?: number; height?: number; fileName?: string } = {}) => {
     // force a specific output size
     this.resize({ width, height, pixelRatio: 1 });
 
-    const blob = await new Promise((resolve) =>
+    const blob = await new Promise<Blob | null>((resolve) =>
       this.canvas.toBlob(resolve, "image/png"),
     );
 
@@ -400,7 +443,9 @@ export default class WebGLApp {
     this.resize();
 
     // save
-    downloadFile(`${fileName}.png`, blob);
+    if(blob) {
+      downloadFile(`${fileName}.png`, blob);
+    }
   };
 
   // start recording of a gif or a video
@@ -409,7 +454,7 @@ export default class WebGLApp {
     height = this.height,
     fileName = "Recording",
     ...options
-  } = {}) => {
+  }: { width?: number; height?: number; fileName?: string, [key: string]: any } = {}) => {
     if (!isWebCodecsSupported()) {
       throw new Error("You need the WebCodecs API to use mp4-wasm");
     }
@@ -425,7 +470,7 @@ export default class WebGLApp {
     this.draw();
 
     const fps = 60;
-    this.#mp4Encoder = this.#mp4.createWebCodecsEncoder({
+    this.#mp4Encoder = this.#mp4!.createWebCodecsEncoder({
       width: roundEven(width),
       height: roundEven(height),
       fps,
@@ -444,9 +489,9 @@ export default class WebGLApp {
     }
 
     for (let frame of this.#frames) {
-      await this.#mp4Encoder.addFrame(frame);
+      await this.#mp4Encoder!.addFrame(frame);
     }
-    const buffer = await this.#mp4Encoder.end();
+    const buffer = await this.#mp4Encoder!.end();
     const blob = new Blob([buffer]);
 
     this.#mp4Encoder = undefined;
@@ -461,15 +506,15 @@ export default class WebGLApp {
     downloadFile(`${this.#fileName}.mp4`, blob);
   };
 
-  update = (dt, time, xrframe) => {
+  update = (dt: number, time: number, xrframe?: any) => {
     if (this.orbitControls) {
       this.orbitControls.update();
     }
 
     // recursively tell all child objects to update
     this.scene.traverse((obj) => {
-      if (typeof obj.update === "function" && !obj.isTransformControls) {
-        obj.update(dt, time, xrframe);
+      if (typeof (obj as any).update === "function" && !(obj as any).isTransformControls) {
+        (obj as any).update(dt, time, xrframe);
       }
     });
 
@@ -484,8 +529,8 @@ export default class WebGLApp {
 
       // recursively tell all child bodies to update
       this.world.bodies.forEach((body) => {
-        if (typeof body.update === "function") {
-          body.update(dt, time);
+        if (typeof (body as any).update === "function") {
+          (body as any).update(dt, time);
         }
       });
     }
@@ -496,23 +541,23 @@ export default class WebGLApp {
     return this;
   };
 
-  onUpdate(fn) {
+  onUpdate(fn: UpdateListener) {
     this.#updateListeners.push(fn);
   }
 
-  onPointerDown(fn) {
+  onPointerDown(fn: PointerListener) {
     this.#pointerdownListeners.push(fn);
   }
 
-  onPointerMove(fn) {
+  onPointerMove(fn: PointerListener) {
     this.#pointermoveListeners.push(fn);
   }
 
-  onPointerUp(fn) {
+  onPointerUp(fn: PointerListener) {
     this.#pointerupListeners.push(fn);
   }
 
-  offUpdate(fn) {
+  offUpdate(fn: UpdateListener) {
     const index = this.#updateListeners.indexOf(fn);
 
     // return silently if the function can't be found
@@ -523,7 +568,7 @@ export default class WebGLApp {
     this.#updateListeners.splice(index, 1);
   }
 
-  offPointerDown(fn) {
+  offPointerDown(fn: PointerListener) {
     const index = this.#pointerdownListeners.indexOf(fn);
 
     // return silently if the function can't be found
@@ -534,7 +579,7 @@ export default class WebGLApp {
     this.#pointerdownListeners.splice(index, 1);
   }
 
-  offPointerMove(fn) {
+  offPointerMove(fn: PointerListener) {
     const index = this.#pointermoveListeners.indexOf(fn);
 
     // return silently if the function can't be found
@@ -545,7 +590,7 @@ export default class WebGLApp {
     this.#pointermoveListeners.splice(index, 1);
   }
 
-  offPointerUp(fn) {
+  offPointerUp(fn: PointerListener) {
     const index = this.#pointerupListeners.indexOf(fn);
 
     // return silently if the function can't be found
@@ -586,7 +631,7 @@ export default class WebGLApp {
     return this;
   };
 
-  animate = (now, xrframe) => {
+  animate = (now: number, xrframe?: any) => {
     if (!this.isRunning) return;
 
     if (this.stats) this.stats.begin();
@@ -608,32 +653,32 @@ export default class WebGLApp {
     if (this.stats) this.stats.end();
   };
 
-  get cursor() {
+  get cursor(): string {
     return this.canvas.style.cursor;
   }
 
-  set cursor(cursor) {
+  set cursor(cursor: string) {
     if (cursor) {
       this.canvas.style.cursor = cursor;
     } else {
-      this.canvas.style.cursor = null;
+      this.canvas.style.cursor = 'auto';
     }
   }
 }
 
-function downloadFile(name, blob) {
+function downloadFile(name: string, blob: Blob) {
   const link = document.createElement("a");
   link.download = name;
   link.href = URL.createObjectURL(blob);
   link.click();
 
   setTimeout(() => {
-    URL.revokeObjectURL(blob);
+    URL.revokeObjectURL(link.href);
     link.removeAttribute("href");
   }, 0);
 }
 
 // Rounds to the closest even number
-function roundEven(n) {
+function roundEven(n: number): number {
   return Math.round(n / 2) * 2;
 }

@@ -7,4 +7,7 @@ export default defineConfig({
     open: true,
     allowedHosts: true,
   },
+  test: {
+    environment: "jsdom",
+  },
 });

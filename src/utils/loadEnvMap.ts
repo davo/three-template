@@ -1,51 +1,55 @@
 import {
+  CubeTexture,
   CubeTextureLoader,
   EquirectangularReflectionMapping,
   PMREMGenerator,
   SRGBColorSpace,
+  Texture,
   TextureLoader,
   UnsignedByteType,
+  WebGLRenderer,
 } from "three";
-// TODO lazy load these, or put them in different files
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import { EXRLoader } from "three/addons/loaders/EXRLoader.js";
 import { HDRCubeTextureLoader } from "three/addons/loaders/HDRCubeTextureLoader.js";
 
-export default function loadEnvMap(url, { renderer, ...options }) {
+interface LoadEnvMapOptions {
+  renderer: WebGLRenderer;
+  pmrem?: boolean;
+  gamma?: boolean;
+  [key: string]: any;
+}
+
+export default function loadEnvMap(url: string | string[], { renderer, ...options }: LoadEnvMapOptions): Promise<Texture> {
   if (!renderer) {
-    throw new Error(
-      `Env map requires renderer to passed in the options for ${url}!`,
-    );
+    throw new Error(`Env map requires renderer to passed in the options for ${url}!`);
   }
 
   const isEquirectangular = !Array.isArray(url);
 
-  let loader;
+  let loader: Promise<Texture>;
   if (isEquirectangular) {
-    const extension = url.slice(url.lastIndexOf(".") + 1);
+    const singleUrl = url as string;
+    const extension = singleUrl.slice(singleUrl.lastIndexOf(".") + 1);
 
     switch (extension) {
-      case "hdr": {
-        loader = new RGBELoader().setDataType(UnsignedByteType).loadAsync(url);
+      case "hdr":
+        loader = new RGBELoader().setDataType(UnsignedByteType).loadAsync(singleUrl);
         break;
-      }
-      case "exr": {
-        loader = new EXRLoader().setDataType(UnsignedByteType).loadAsync(url);
+      case "exr":
+        loader = new EXRLoader().setDataType(UnsignedByteType).loadAsync(singleUrl);
         break;
-      }
       case "png":
-      case "jpg": {
-        loader = new TextureLoader().loadAsync(url).then((texture) => {
+      case "jpg":
+        loader = new TextureLoader().loadAsync(singleUrl).then((texture) => {
           if (renderer.outputColorSpace === SRGBColorSpace && options.gamma) {
             texture.colorSpace = SRGBColorSpace;
           }
           return texture;
         });
         break;
-      }
-      default: {
+      default:
         throw new Error(`Extension ${extension} not supported`);
-      }
     }
 
     loader = loader.then((texture) => {
@@ -56,46 +60,41 @@ export default function loadEnvMap(url, { renderer, ...options }) {
       }
     });
   } else {
-    const extension = url[0].slice(url.lastIndexOf(".") + 1);
+    const multiUrl = url as string[];
+    const extension = multiUrl[0].slice(multiUrl[0].lastIndexOf(".") + 1);
 
     switch (extension) {
-      case "hdr": {
-        loader = new HDRCubeTextureLoader()
-          .setDataType(UnsignedByteType)
-          .loadAsync(url);
+      case "hdr":
+        loader = new HDRCubeTextureLoader().setDataType(UnsignedByteType).loadAsync(multiUrl);
         break;
-      }
       case "png":
-      case "jpg": {
-        loader = new CubeTextureLoader().loadAsync(url).then((texture) => {
+      case "jpg":
+        loader = new CubeTextureLoader().loadAsync(multiUrl).then((texture) => {
           if (renderer.outputColorSpace === SRGBColorSpace && options.gamma) {
             texture.colorSpace = SRGBColorSpace;
           }
           return texture;
         });
         break;
-      }
-      default: {
+      default:
         throw new Error(`Extension ${extension} not supported`);
-      }
     }
 
     loader = loader.then((texture) => {
       if (options.pmrem) {
-        return cubeToPMREMCube(texture, renderer);
+        return cubeToPMREMCube(texture as CubeTexture, renderer);
       } else {
         return texture;
       }
     });
   }
 
-  // apply eventual texture options, such as wrap, repeat...
   const textureOptions = Object.keys(options).filter(
     (option) => !["pmrem", "linear"].includes(option),
   );
   textureOptions.forEach((option) => {
     loader = loader.then((texture) => {
-      texture[option] = options[option];
+      (texture as any)[option] = options[option];
       return texture;
     });
   });
@@ -103,37 +102,25 @@ export default function loadEnvMap(url, { renderer, ...options }) {
   return loader;
 }
 
-// prefilter the equirectangular environment map for irradiance
-function equirectangularToPMREMCube(texture, renderer) {
+function equirectangularToPMREMCube(texture: Texture, renderer: WebGLRenderer): Texture {
   const pmremGenerator = new PMREMGenerator(renderer);
   pmremGenerator.compileEquirectangularShader();
-
   const cubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
-
-  pmremGenerator.dispose(); // dispose PMREMGenerator
-  texture.dispose(); // dispose original texture
-  texture.image.data = null; // remove image reference
-
+  pmremGenerator.dispose();
+  texture.dispose();
   return cubeRenderTarget.texture;
 }
 
-// prefilter the cubemap environment map for irradiance
-function cubeToPMREMCube(texture, renderer) {
+function cubeToPMREMCube(texture: CubeTexture, renderer: WebGLRenderer): Texture {
   const pmremGenerator = new PMREMGenerator(renderer);
   pmremGenerator.compileCubemapShader();
-
   const cubeRenderTarget = pmremGenerator.fromCubemap(texture);
-
-  pmremGenerator.dispose(); // dispose PMREMGenerator
-  texture.dispose(); // dispose original texture
-  texture.image.data = null; // remove image reference
-
+  pmremGenerator.dispose();
+  texture.dispose();
   return cubeRenderTarget.texture;
 }
 
-// transform an equirectangular texture to a cubetexture that
-// can be used as an envmap or scene background
-function equirectangularToCube(texture) {
+function equirectangularToCube(texture: Texture): Texture {
   texture.mapping = EquirectangularReflectionMapping;
   return texture;
 }

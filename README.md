@@ -17,20 +17,23 @@ It is inspired from [mattdesl](https://twitter.com/mattdesl)'s [threejs-app](htt
 - [glslify](https://github.com/glslify/glslify) to import shaders from `node_modules`. [[Read more](#glslify)]
 - GPU tiering info using [detect-gpu](https://github.com/TimvanScherpenzeel/detect-gpu) [[Read more](#gpu-info)]
   <!-- - **Hot reload**. [[Read more](#hot-reload)] -->
-- Modern and customizable development tools such as ⚡️**esbuild**⚡️, eslint, and prettier.
+- Modern and customizable development tools such as ⚡️**Vite**⚡️, TypeScript, and Biome.
 - Beautiful console output:
 
 ![console screenshots](.github/screenshots/console.png)
 
 ## Usage
 
-Once you installed the dependencies running `yarn`, these are the available commands:
+Once you installed the dependencies running `pnpm install`, these are the available commands:
 
-- `yarn start` starts a server locally
-- `yarn start --https` starts an HTTPS server locally
-- `yarn build` builds the project for production, ready to be deployed from the `build/` folder
+- `pnpm dev` starts a server locally
+- `pnpm build` builds the project for production, ready to be deployed from the `dist/` folder
+- `pnpm preview` serves the production build locally for previewing
+- `pnpm lint` lints the code with Biome
+- `pnpm format` formats the code with Biome
+- `pnpm test` runs the tests with Vitest
 
-All the build tools logic is in the `package.json` and `esbuild.js`.
+All the build tools logic is in the `package.json` and `vite.config.js`.
 
 ## WebGLApp
 

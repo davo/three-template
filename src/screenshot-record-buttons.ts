@@ -1,4 +1,5 @@
-// normally the styles would be in style.css
+import WebGLApp from "./utils/WebGLApp";
+
 const buttonStyles = `
   .button {
     background: chocolate;
@@ -22,15 +23,16 @@ const buttonStyles = `
   }
 `;
 
-// demo the save screenshot feature
-export function addScreenshotButton(webgl) {
-  document.head.innerHTML = `${document.head.innerHTML}<style>${buttonStyles}</style>`;
+export function addScreenshotButton(webgl: WebGLApp) {
+  const style = document.createElement('style');
+  style.textContent = buttonStyles;
+  document.head.appendChild(style);
 
   const screenshotButton = document.createElement("div");
   screenshotButton.classList.add("button");
   screenshotButton.style.position = "fixed";
-  screenshotButton.style.bottom = 0;
-  screenshotButton.style.right = 0;
+  screenshotButton.style.bottom = "0";
+  screenshotButton.style.right = "0";
 
   screenshotButton.textContent = "📸 Save screenshot";
   screenshotButton.addEventListener("click", () => webgl.saveScreenshot());
@@ -38,15 +40,16 @@ export function addScreenshotButton(webgl) {
   document.body.appendChild(screenshotButton);
 }
 
-// demo the save video feature
-export function addRecordButton(webgl) {
-  document.head.innerHTML = `${document.head.innerHTML}<style>${buttonStyles}</style>`;
+export function addRecordButton(webgl: WebGLApp) {
+  const style = document.createElement('style');
+  style.textContent = buttonStyles;
+  document.head.appendChild(style);
 
   const recordButton = document.createElement("div");
   recordButton.classList.add("button");
   recordButton.style.position = "fixed";
-  recordButton.style.bottom = 0;
-  recordButton.style.left = 0;
+  recordButton.style.bottom = "0";
+  recordButton.style.left = "0";
 
   recordButton.textContent = "🔴 Start recording mp4";
   recordButton.addEventListener("click", async () => {

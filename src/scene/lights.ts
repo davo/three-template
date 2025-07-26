@@ -1,8 +1,7 @@
 import { DirectionalLight, HemisphereLight } from "three";
+import WebGLApp from "../utils/WebGLApp";
 
-// natural hemisphere light from
-// https://threejs.org/examples/#webgl_lights_hemisphere
-export function addNaturalLight(webgl) {
+export function addNaturalLight(webgl: WebGLApp) {
   const hemiLight = new HemisphereLight(0xffffff, 0xffffff, 0.6);
   hemiLight.color.setHSL(0.6, 1, 0.6);
   hemiLight.groundColor.setHSL(0.095, 1, 0.75);

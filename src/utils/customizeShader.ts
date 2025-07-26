@@ -1,78 +1,99 @@
-export function addDefines(material, defines) {
+import { Material, Shader } from "three";
+
+interface CustomMaterial extends Material {
+  beforeCompileListeners?: ((shader: Shader) => void)[];
+  addBeforeCompileListener?: (fn: (shader: Shader) => void) => void;
+  uniforms?: { [uniform: string]: { value: any } };
+  defines?: { [define: string]: any };
+}
+
+interface ShaderHooks {
+  defines?: { [key: string]: any };
+  head?: string;
+  main?: string;
+  transformed?: string;
+  objectNormal?: string;
+  transformedNormal?: string;
+  gl_Position?: string;
+  diffuse?: string;
+  emissive?: string;
+  gl_FragColor?: string;
+  [key: string]: any;
+}
+
+export function addDefines(material: CustomMaterial, defines: { [key: string]: any }) {
   prepareOnBeforeCompile(material);
 
   material.defines = defines;
 
-  material.addBeforeCompileListener((shader) => {
+  material.addBeforeCompileListener?.((shader) => {
     material.defines = {
       ...material.defines,
       ...shader.defines,
     };
-
     shader.defines = material.defines;
   });
 
   constructOnBeforeCompile(material);
 }
 
-export function addUniforms(material, uniforms) {
+export function addUniforms(material: CustomMaterial, uniforms: { [key: string]: { value: any } }) {
   prepareOnBeforeCompile(material);
 
   material.uniforms = uniforms;
 
-  material.addBeforeCompileListener((shader) => {
+  material.addBeforeCompileListener?.((shader) => {
     material.uniforms = {
       ...material.uniforms,
       ...shader.uniforms,
     };
-
     shader.uniforms = material.uniforms;
   });
 
   constructOnBeforeCompile(material);
 }
 
-export function customizeVertexShader(material, hooks) {
+export function customizeVertexShader(material: CustomMaterial, hooks: ShaderHooks) {
   prepareOnBeforeCompile(material);
 
-  material.addBeforeCompileListener((shader) => {
+  material.addBeforeCompileListener?.((shader) => {
     shader.vertexShader = monkeyPatch(shader.vertexShader, hooks);
   });
 
   constructOnBeforeCompile(material);
 }
 
-export function customizeFragmentShader(material, hooks) {
+export function customizeFragmentShader(material: CustomMaterial, hooks: ShaderHooks) {
   prepareOnBeforeCompile(material);
 
-  material.addBeforeCompileListener((shader) => {
+  material.addBeforeCompileListener?.((shader) => {
     shader.fragmentShader = monkeyPatch(shader.fragmentShader, hooks);
   });
 
   constructOnBeforeCompile(material);
 }
 
-function prepareOnBeforeCompile(material) {
+function prepareOnBeforeCompile(material: CustomMaterial) {
   if (material.beforeCompileListeners) {
     return;
   }
 
   material.beforeCompileListeners = [];
-  material.addBeforeCompileListener = (fn) => {
-    material.beforeCompileListeners.push(fn);
+  material.addBeforeCompileListener = (fn: (shader: Shader) => void) => {
+    material.beforeCompileListeners?.push(fn);
   };
 }
 
-function constructOnBeforeCompile(material) {
+function constructOnBeforeCompile(material: CustomMaterial) {
   material.onBeforeCompile = (shader) => {
-    material.beforeCompileListeners.forEach((fn) => fn(shader));
+    material.beforeCompileListeners?.forEach((fn) => fn(shader));
   };
 }
 
 export function monkeyPatch(
-  shader,
+  shader: string,
   {
-    defines = "",
+    defines = {},
     head = "",
     main = "",
     transformed,
@@ -83,11 +104,11 @@ export function monkeyPatch(
     emissive,
     gl_FragColor,
     ...replaces
-  },
-) {
+  }: ShaderHooks,
+): string {
   let patchedShader = shader;
 
-  const replaceAll = (str, find, rep) => str.split(find).join(rep);
+  const replaceAll = (str: string, find: string, rep: string) => str.split(find).join(rep);
   Object.keys(replaces).forEach((key) => {
     patchedShader = replaceAll(patchedShader, key, replaces[key]);
   });

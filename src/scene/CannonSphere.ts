@@ -1,17 +1,17 @@
 import { Group, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
-import { Body, Sphere } from "cannon-es";
+import { Body, Sphere, IBodyOptions } from "cannon-es";
+import WebGLApp from "../utils/WebGLApp";
 
-// remember to add the body to the CANNON world and
-// the mesh to the three.js scene or to some component
-//
-//   const sphere = new CannonSphere(webgl, { mass: 1, radius: 1 })
-//   webgl.world.addBody(sphere)
-//   webgl.scene.add(sphere.mesh)
+interface CannonSphereOptions extends IBodyOptions {
+  radius?: number;
+}
 
 export default class CannonSphere extends Body {
   mesh = new Group();
+  private webgl: WebGLApp;
+  private options: CannonSphereOptions;
 
-  constructor(webgl, options = {}) {
+  constructor(webgl: WebGLApp, options: CannonSphereOptions = {}) {
     super(options);
     this.webgl = webgl;
     this.options = options;
@@ -20,7 +20,6 @@ export default class CannonSphere extends Body {
 
     this.addShape(new Sphere(radius));
 
-    // add corresponding geometry and material
     this.mesh.add(
       new Mesh(
         new SphereGeometry(radius, 32, 32),
@@ -28,12 +27,10 @@ export default class CannonSphere extends Body {
       ),
     );
 
-    // sync the position the first time
     this.update();
   }
 
-  update(dt, time) {
-    // sync the mesh to the physical body
+  update(dt?: number, time?: number) {
     this.mesh.position.copy(this.position);
     this.mesh.quaternion.copy(this.quaternion);
   }

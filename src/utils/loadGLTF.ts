@@ -1,7 +1,11 @@
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { GLTF, GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-export default function loadGLTF(url, options = {}) {
+interface LoadGLTFOptions {
+  draco?: boolean;
+}
+
+export default function loadGLTF(url: string, options: LoadGLTFOptions = {}): Promise<GLTF> {
   return new Promise((resolve, reject) => {
     const loader = new GLTFLoader();
 
@@ -11,7 +15,7 @@ export default function loadGLTF(url, options = {}) {
       loader.setDRACOLoader(dracoLoader);
     }
 
-    loader.load(url, resolve, null, (err) =>
+    loader.load(url, resolve, undefined, (err) =>
       reject(new Error(`Could not load GLTF asset ${url}:\n${err}`)),
     );
   });

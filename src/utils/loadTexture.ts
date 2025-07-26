@@ -1,6 +1,12 @@
-import { SRGBColorSpace, TextureLoader } from "three";
+import { SRGBColorSpace, Texture, TextureLoader, WebGLRenderer } from "three";
 
-export default function loadTexture(url, { renderer, ...options }) {
+interface LoadTextureOptions {
+  renderer: WebGLRenderer;
+  gamma?: boolean;
+  [key: string]: any;
+}
+
+export default function loadTexture(url: string, { renderer, ...options }: LoadTextureOptions): Promise<Texture> {
   if (!renderer) {
     throw new Error(
       `Texture requires renderer to passed in the options for ${url}!`,
@@ -11,26 +17,22 @@ export default function loadTexture(url, { renderer, ...options }) {
     new TextureLoader().load(
       url,
       (texture) => {
-        // apply eventual gamma encoding
         if (renderer.outputColorSpace === SRGBColorSpace && options.gamma) {
           texture.colorSpace = SRGBColorSpace;
         }
 
-        // apply eventual texture options, such as wrap, repeat...
         const textureOptions = Object.keys(options).filter(
           (option) => !["linear"].includes(option),
         );
         textureOptions.forEach((option) => {
-          texture[option] = options[option];
+          (texture as any)[option] = options[option];
         });
 
-        // Force texture to be uploaded to GPU immediately,
-        // this will avoid "jank" on first rendered frame
         renderer.initTexture(texture);
 
         resolve(texture);
       },
-      null,
+      undefined,
       (err) => reject(new Error(`Could not load texture ${url}:\n${err}`)),
     );
   });
