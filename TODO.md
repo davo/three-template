@@ -43,7 +43,7 @@ This is the high-level plan for refactoring the `threejs-modern-app`.
         5.  Systematically fix all resulting type errors file by file, adding explicit types for function parameters, return values, and class properties. Pay special attention to `WebGLApp.js` and the asset loaders.
         6.  Ensure the application runs and builds without TypeScript errors (`pnpm build`).
 
-- [ ] **Phase 4: Testing Framework Integration (Vitest)**
+- [X] **Phase 4: Testing Framework Integration (Vitest)**
     -   **Goal:** Introduce a modern testing framework to ensure the boilerplate's core functionality is stable and to enable TDD for future features.
     -   **Tasks:**
         1.  Add `vitest` and `jsdom` as dev dependencies.
